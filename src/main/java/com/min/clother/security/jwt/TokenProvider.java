@@ -36,7 +36,7 @@ public class TokenProvider {
 
     private final Key key;
 
-    public TokenProvider(@Value("${spring.jwt.secret}") String secretKey) {
+    public TokenProvider(@Value("${app.jwt.secret}") String secretKey) {
         if (secretKey == null || secretKey.isEmpty()) {
             throw new IllegalStateException("JWT Secret Key is NOT set!");
         }
@@ -44,7 +44,7 @@ public class TokenProvider {
         this.key = Keys.hmacShaKeyFor(keyBytes);
     }
 
-    // 🔹 userId를 포함하도록 변경
+    // userId를 포함하도록 변경
     public TokenDTO generateTokenDTO(Authentication authentication, int userId, String imageUrl, String userNickname) {
         // 권한 가져오기
         String authorities = authentication.getAuthorities().stream()

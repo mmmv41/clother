@@ -1,6 +1,8 @@
 package com.min.clother.user.command.controller;
 
+import com.min.clother.security.dto.TokenDTO;
 import com.min.clother.security.service.AuthService;
+import com.min.clother.security.vo.LoginRequestVO;
 import com.min.clother.user.command.service.UserService;
 import com.min.clother.user.command.vo.SignupRequestVO;
 import jakarta.validation.Valid;
@@ -30,8 +32,8 @@ public class UserController {
     }
 
     // 기능 : 로그인
-//    @PostMapping("/login")
-//    public ResponseEntity<TokenDTO> login(@RequestBody LoginRequestVO loginRequestVO) {
-//        return ResponseEntity.ok(authService.login(loginRequestVO));
-//    }
+    @PostMapping("/login")
+    public ResponseEntity<TokenDTO> login(@RequestBody LoginRequestVO loginRequestVO) {
+        return ResponseEntity.ok(authService.login(loginRequestVO));
+    }
 }

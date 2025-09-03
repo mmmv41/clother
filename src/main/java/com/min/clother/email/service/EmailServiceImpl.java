@@ -22,7 +22,7 @@ public class EmailServiceImpl implements EmailService {
     private final RedisUtil redisUtil;
     private final UserService userService;
 
-    @Value("${spring.mail.auth-code-expiration-millis}")
+    @Value("${app.mail.auth-code-expiration-millis}")
     private long authCodeExpirationMillis;
 
     @Autowired
@@ -67,7 +67,7 @@ public class EmailServiceImpl implements EmailService {
     // HTML 템플릿 로드 메서드
     private String loadHtmlTemplate() throws IOException {
         // ClassPathResource를 사용하여 리소스 폴더의 템플릿 로드
-        ClassPathResource resource = new ClassPathResource("email-template.html");
+        ClassPathResource resource = new ClassPathResource("templates/email-template.html");
         byte[] fileBytes = Files.readAllBytes(Paths.get(resource.getURI()));
         return new String(fileBytes, "UTF-8");
     }

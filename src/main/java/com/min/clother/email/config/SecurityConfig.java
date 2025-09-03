@@ -1,5 +1,9 @@
 package com.min.clother.email.config;
 
+import com.min.clother.security.jwt.JwtAccessDeniedHandler;
+import com.min.clother.security.jwt.JwtAuthenticationEntryPoint;
+import com.min.clother.security.jwt.JwtFilter;
+import com.min.clother.security.jwt.TokenProvider;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -8,6 +12,7 @@ import org.springframework.security.authentication.ProviderManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,17 +24,17 @@ import org.springframework.web.filter.CorsFilter;
 @EnableWebSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    //    private final TokenProvider tokenProvider;
+    private final TokenProvider tokenProvider;
     private final CorsFilter corsFilter;
-    //    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
-//    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
+    private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
     private final UserDetailsService userDetailsService;
 
     // JwtFilter 를 빈으로 등록
-//    @Bean
-//    public JwtFilter jwtFilter() {
-//        return new JwtFilter(tokenProvider);
-//    }
+    @Bean
+    public JwtFilter jwtFilter() {
+        return new JwtFilter(tokenProvider);
+    }
 
     // PasswordEncoder 빈으로 등록
     @Bean
@@ -55,39 +60,29 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .addFilterBefore(corsFilter, UsernamePasswordAuthenticationFilter.class)
 
-                // 🔻 주석 처리: JWT 예외 핸들링
-                // .exceptionHandling(exceptionHandling -> exceptionHandling
-                //         .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-                //         .accessDeniedHandler(jwtAccessDeniedHandler))
+                .exceptionHandling(exceptionHandling -> exceptionHandling
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+                        .accessDeniedHandler(jwtAccessDeniedHandler))
 
-                // 🔻 JWT는 무상태, 세션 방식에선 STATELESS 제거
-                // .sessionManagement(sessionManagement -> sessionManagement
-                //         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .sessionManagement(sessionManagement -> sessionManagement
+                        .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
                 .headers(headers -> headers
                         .frameOptions(frameOptions -> frameOptions.sameOrigin()))
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**",
-                                "/v3/api-docs/**", "/auth/**", "/mails/**")
+                                "/v3/api-docs/**")
+                        .permitAll()
+                        .requestMatchers("/auth/**", "/mails/**")
                         .permitAll()
                         .anyRequest()
                         .authenticated()
                 )
 
-                // 🔻 JWT 필터 제거
-                // .addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class)
-
-                // ✅ 세션 로그인 방식 추가
-                .formLogin(form -> form
-//                        .loginPage("/login")  // 커스텀 로그인 페이지가 없다면 제거해도 됨
-                                .permitAll()
-                )
-                .logout(logout -> logout
-                        .permitAll()
-                )
+                // 빈으로 등록한 JwtFilter 를 추가
+                .addFilterBefore(jwtFilter(), UsernamePasswordAuthenticationFilter.class)
 
                 .build();
     }
-
 }
