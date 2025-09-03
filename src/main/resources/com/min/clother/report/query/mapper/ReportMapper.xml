@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.min.clother.report.query.mapper.ReportMapper">
+
+    <resultMap id="ReportResultsMap" type="com.min.clother.report.query.dto.ReportDTO">
+        <id column="id" property="id"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="reason" property="reason"/>
+        <result column="status" property="status"/>
+        <result column="reporter_id" property="reporterId"/>
+        <result column="reported_id" property="reportedId"/>
+        <result column="post_id" property="postId"/>
+        <result column="board_id" property="boardId"/>
+        <result column="comment_id" property="commentId"/>
+    </resultMap>
+
+    <select id="findAllReports" resultMap="ReportResultsMap">
+        SELECT
+        R.ID
+        , R.created_at
+        , R.reason
+        , R.status
+        , R.reporter_id
+        , R.reported_id
+        , R.post_id
+        , R.board_id
+        , R.comment_id
+        FROM report R
+        WHERE R.status = #{status}
+        <choose>
+            <when test="sortDirection == 'ASC'">
+                ORDER BY ID ASC
+            </when>
+            <when test="sortDirection == 'DESC'">
+                ORDER BY ID DESC
+            </when>
+            <otherwise>
+                ORDER BY ID ASC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="findOverFiveReportedUsers" resultMap="ReportResultsMap">
+        SELECT
+        R.ID
+        , R.created_at
+        , R.reason
+        , R.status
+        , R.reporter_id
+        , R.reported_id
+        , R.post_id
+        , R.board_id
+        , R.comment_id
+        FROM report R
+        WHERE R.status = 'N'
+        AND R.reported_id IN (
+        SELECT reported_id
+        FROM report
+        WHERE status = 'N'
+        GROUP BY reported_id
+        HAVING COUNT(*) >= 5
+        )
+        ORDER BY R.reported_id ASC, R.id DESC
+    </select>
+
+</mapper>
