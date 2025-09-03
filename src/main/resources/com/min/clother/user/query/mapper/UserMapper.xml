@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.min.clother.user.query.mapper.UserMapper">
+
+    <resultMap id="UserResultMap" type="com.min.clother.user.query.dto.UserDTO">
+        <id column="user_id" property="id"/>
+        <result column="email" property="email"/>
+        <result column="password" property="password"/>
+        <result column="nickname" property="nickname"/>
+        <result column="gender" property="gender"/>
+        <result column="height" property="height"/>
+        <result column="weight" property="weight"/>
+        <result column="role" property="role"/>
+        <result column="bio" property="bio"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="is_suspended" property="isSuspended"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="image_url" property="imageUrl"/>
+    </resultMap>
+
+    <select id="getUsers" resultMap="UserResultMap">
+        SELECT
+        id AS user_id
+        , email
+        , nickname
+        , gender
+        , height
+        , weight
+        , `role`
+        , bio
+        , created_at
+        , updated_at
+        , is_suspended
+        , is_deleted
+        , image_url
+        FROM `user` u
+        WHERE u.nickname LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY u.created_at DESC
+    </select>
+
+    <select id="getUser" resultMap="UserResultMap">
+        SELECT
+        id AS user_id
+        , email
+        , nickname
+        , gender
+        , height
+        , weight
+        , `role`
+        , bio
+        , created_at
+        , updated_at
+        , is_suspended
+        , is_deleted
+        , image_url
+        FROM `user` u
+        WHERE u.id = #{userId}
+        ORDER BY u.created_at DESC
+    </select>
+
+</mapper>
