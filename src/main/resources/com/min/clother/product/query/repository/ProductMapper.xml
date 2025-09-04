@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.min.clother.product.query.repository.ProductMapper">
+    <resultMap id="categoryMap" type="com.min.clother.product.query.dto.CategoryDTO">
+        <id property="id" column="id"/>
+        <result property="name" column="name"/>
+    </resultMap>
+
+    <select id="selectSubCategories" resultMap="categoryMap">
+        SELECT
+        C.ID
+        , C.NAME
+        FROM CATEGORY C
+        JOIN CATEGORY P ON C.PARENT_ID = P.ID
+        WHERE P.NAME = #{categoryName}
+        ORDER BY C.ID ASC;
+    </select>
+
+    <resultMap id="productRegistHistoryMap" type="com.min.clother.product.query.dto.ProductRegistHistoryDTO">
+        <id property="id" column="id"/>
+        <result property="brandName" column="brand_name"/>
+        <result property="name" column="name"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="productLink" column="product_link"/>
+    </resultMap>
+
+    <select id="selectProductHistoryByUserId" resultMap="productRegistHistoryMap">
+        SELECT
+        ID
+        , BRAND_NAME
+        , NAME
+        , CREATED_AT
+        , PRODUCT_LINK
+        FROM PRODUCT_REGISTRATION
+        WHERE USER_ID = #{userId}
+        ORDER BY CREATED_AT ASC;
+    </select>
+
+    <resultMap id="productDetailMap" type="com.min.clother.product.query.dto.ProductDetailDTO">
+        <id property="id" column="id"/>
+        <result property="brandName" column="brand_name"/>
+        <result property="name" column="name"/>
+        <result property="price" column="price"/>
+        <result property="link" column="link"/>
+        <result property="imageUrl" column="image_url"/>
+    </resultMap>
+
+    <select id="selectProductDetailByProductId" resultMap="productDetailMap">
+        SELECT
+        ID
+        , BRAND_NAME
+        , NAME
+        , PRICE
+        , LINK
+        , IMAGE_URL
+        FROM PRODUCT
+        WHERE ID = #{productId}
+    </select>
+
+    <resultMap id="categoryProductMap" type="com.min.clother.product.query.dto.CategoryProductDTO">
+        <id property="id" column="c_id"/>
+        <result property="name" column="c_name"/>
+
+        <collection property="products" ofType="com.min.clother.product.query.dto.ProductDTO">
+            <id property="id" column="p_id"/>
+            <result property="name" column="p_name"/>
+            <result property="brandName" column="p_brand_name"/>
+            <result property="imageUrl" column="p_image_url"/>
+        </collection>
+    </resultMap>
+
+    <select id="selectAllProductsByCategory" resultMap="categoryProductMap">
+        SELECT
+        P.ID AS P_ID
+        , P.BRAND_NAME AS P_BRAND_NAME
+        , P.IMAGE_URL AS P_IMAGE_URL
+        , P.NAME AS P_NAME
+        , C.ID AS C_ID
+        , C.NAME AS C_NAME
+        FROM PRODUCT P
+        JOIN CATEGORY C ON P.CATEGORY_ID = C.ID
+        <where>
+            <if test="categoryName != null and categoryName != '전체'">
+                C.NAME = #{categoryName}
+            </if>
+            <if test="categoryName == '전체'">
+                C.PARENT_ID = #{parentCategoryId}  <!-- 전체 선택 시 같은 부모 카테고리의 모든 제품 조회 -->
+            </if>
+        </where>
+        ORDER BY P.ID ASC;
+    </select>
+
+    <resultMap id="selectProductsByIdsResultMap" type="com.min.clother.product.query.dto.ProductForPostDTO">
+        <id property="id" column="id"/>
+        <result property="brandName" column="brand_name"/>
+        <result property="name" column="name"/>
+        <result property="price" column="price"/>
+        <result property="link" column="link"/>
+        <result property="imageUrl" column="image_url"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="categoryName" column="category_name"/>
+    </resultMap>
+
+    <select id="selectProductsByIds" resultMap="selectProductsByIdsResultMap">
+        SELECT
+        A.ID
+        , A.BRAND_NAME
+        , A.NAME
+        , A.PRICE
+        , A.LINK
+        , A.IMAGE_URL
+        , A.CATEGORY_ID
+        , B.NAME AS CATEGORY_NAME
+        FROM PRODUCT A
+        JOIN CATEGORY B ON A.CATEGORY_ID = B.ID
+        WHERE A.ID IN
+        <foreach item="id" collection="productIds" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </select>
+
+    <select id="selectProductsByKeyword" resultType="com.min.clother.product.query.dto.ProductForSearchDTO">
+        SELECT
+        id
+        , brand_name AS brandName
+        , name
+        , image_url AS imageUrl
+        , link
+        , category_id AS categoryId
+        FROM product
+        WHERE name LIKE CONCAT('%', #{keyword}, '%')
+        OR brand_name LIKE CONCAT('%', #{keyword}, '%')
+        LIMIT 20
+    </select>
+
+</mapper>

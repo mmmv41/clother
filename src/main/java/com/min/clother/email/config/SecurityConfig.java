@@ -71,10 +71,10 @@ public class SecurityConfig {
                         .frameOptions(frameOptions -> frameOptions.sameOrigin()))
 
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**", "/api-docs", "/api-docs/**",
-                                "/v3/api-docs/**")
-                        .permitAll()
-                        .requestMatchers("/auth/**", "/mails/**")
+                        .requestMatchers("/swagger", "/swagger-ui.html", "/swagger-ui/**",
+                                "/v3/api-docs", "/v3/api-docs/**",
+                                "/api-docs", "/api-docs/**",
+                                "/auth/**", "/mails/**")
                         .permitAll()
                         .anyRequest()
                         .authenticated()

@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.min.clother.likes.query.mapper.LikeMapper">
+
+    <resultMap id="findLikedItemsByUserIdResultMap" type="com.min.clother.likes.query.dto.LikeDTO">
+        <id property="id" column="id"/>
+        <result property="type" column="type"/>
+        <result property="content" column="content"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <select id="findLikedItemsByUserId" resultType="com.min.clother.likes.query.dto.LikeDTO">
+        SELECT
+        L.ID
+        , 'post' AS TYPE
+        , P.CONTENT
+        , P.CREATED_AT
+        FROM LIKES L
+        JOIN POST P ON L.POST_ID = P.ID
+        WHERE L.USER_ID = #{userId}
+
+        UNION ALL
+
+        SELECT
+        L.ID
+        , 'comment' AS TYPE
+        , C.CONTENT
+        , C.CREATED_AT
+        FROM LIKES L
+        JOIN COMMENT C ON L.COMMENT_ID = C.ID
+        WHERE L.USER_ID = #{userId}
+
+        UNION ALL
+
+        SELECT
+        L.ID
+        , 'board' AS TYPE
+        , B.TITLE AS CONTENT
+        , B.CREATED_AT
+        FROM LIKES L
+        JOIN ADVICE_BOARD B ON L.BOARD_ID = B.ID
+        WHERE L.USER_ID = #{userId}
+    </select>
+
+    <select id="checkUserLiked" resultType="int">
+        SELECT
+        COUNT(*)
+        FROM LIKES
+        WHERE USER_ID = #{userId}
+        AND (
+        (#{type} = 'post' AND POST_ID = #{targetId})
+        OR (#{type} = 'comment' AND COMMENT_ID = #{targetId})
+        OR (#{type} = 'board' AND BOARD_ID = #{targetId})
+        )
+    </select>
+
+</mapper>
