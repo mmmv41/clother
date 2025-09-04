@@ -1,0 +1,242 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.min.clother.post.query.dao.QueryPostMapper">
+    <!-- 피드 조회 resultMap -->
+    <resultMap id="selectFeedResultMap" type="com.min.clother.post.query.dto.ResponsePostFeedDTO">
+        <id property="id" column="id"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="commentCount" column="comment_count"/>
+        <result property="thumbnailUrl" column="thumbnail_url"/>
+    </resultMap>
+
+    <!-- 태그 필터 조건 분리 -->
+    <sql id="feedTagFilter">
+        <if test="(lookTagIds != null and lookTagIds.size() > 0) or (categoryIds != null and categoryIds.size() > 0)">
+            HAVING
+            <!-- 첫 번째 AND 제거 -->
+            <trim prefixOverrides="AND">
+                <if test="lookTagIds != null and lookTagIds.size() > 0">
+                    (
+                    <foreach collection="lookTagIds" item="tagId" separator=" OR ">
+                        FIND_IN_SET(#{tagId}, look_tag_ids)
+                    </foreach>
+                    )
+                </if>
+                <if test="categoryIds != null and categoryIds.size() > 0">
+                    <if test="lookTagIds != null and lookTagIds.size() > 0">
+                        AND
+                    </if>
+                    (
+                    <foreach collection="categoryIds" item="catId" separator=" OR ">
+                        FIND_IN_SET(#{catId}, category_ids)
+                    </foreach>
+                    )
+                </if>
+            </trim>
+        </if>
+    </sql>
+
+    <!-- 피드 조회 -->
+    <select id="selectFeed" resultMap="selectFeedResultMap"
+            parameterType="com.min.clother.post.query.dto.RequestFeedDTO">
+        SELECT
+        p.id
+        , p.like_count
+        , p.comment_count
+        , thumb.image_url AS thumbnail_url
+        , GROUP_CONCAT(DISTINCT plt.look_tag_id) AS look_tag_ids
+        , GROUP_CONCAT(DISTINCT t.category_id) AS category_ids
+        FROM post p
+        JOIN user u ON p.user_id = u.id
+        LEFT JOIN post_image thumb ON thumb.post_id = p.id AND thumb.`order` = 1
+        LEFT JOIN post_look_tag plt ON p.id = plt.post_id
+        LEFT JOIN tag t ON p.id = t.post_id
+        <where>
+            p.is_deleted = FALSE
+            <if test="minHeight != null">
+                AND u.height &gt;= #{minHeight}
+            </if>
+            <if test="maxHeight != null">
+                AND u.height &lt;= #{maxHeight}
+            </if>
+            <if test="minWeight != null">
+                AND u.weight &gt;= #{minWeight}
+            </if>
+            <if test="maxWeight != null">
+                AND u.weight &lt;= #{maxWeight}
+            </if>
+            <if test="lastPostId != null and sort == 'latest'">
+                AND (
+                p.created_at &lt; (
+                SELECT created_at
+                FROM post
+                WHERE id = #{lastPostId}
+                )
+                OR (
+                p.created_at = (
+                SELECT created_at
+                FROM post
+                WHERE id = #{lastPostId}
+                )
+                AND p.id &lt; #{lastPostId}
+                )
+                )
+            </if>
+            <if test="lastPostId != null and sort == 'likes'">
+                AND (
+                p.like_count &lt; (
+                SELECT like_count
+                FROM post
+                WHERE id = #{lastPostId}
+                )
+                OR (
+                p.like_count = (
+                SELECT like_count
+                FROM post
+                WHERE id = #{lastPostId}
+                )
+                AND p.id &lt; #{lastPostId}
+                )
+                )
+            </if>
+        </where>
+        GROUP BY p.id
+        <include refid="feedTagFilter"/>
+        <choose>
+            <when test="sort == 'likes'">
+                ORDER BY p.like_count DESC, p.created_at DESC
+            </when>
+            <otherwise>
+                ORDER BY p.created_at DESC
+            </otherwise>
+        </choose>
+        LIMIT 20
+    </select>
+
+    <!-- 포스트 상세 조회 -->
+    <resultMap id="selectPostDetailResultMap" type="com.min.clother.post.query.dto.ResponsePostDetailDTO">
+        <id property="id" column="id"/>
+        <result property="content" column="content"/>
+        <result property="likeCount" column="like_count"/>
+        <result property="commentCount" column="comment_count"/>
+        <result property="createdAt" column="created_at"/>
+
+        <result property="userId" column="user_id"/>
+        <result property="userNickname" column="nickname"/>
+        <result property="userProfileImageUrl" column="image_url"/>
+        <result property="userHeight" column="height"/>
+        <result property="userWeight" column="weight"/>
+    </resultMap>
+
+    <!-- 포스팅, 유저 정보 -->
+    <select id="selectPostDetail" resultMap="selectPostDetailResultMap">
+        SELECT
+        a.id
+        , a.content
+        , a.like_count
+        , a.comment_count
+        , a.created_at
+        , b.id AS user_id
+        , b.nickname
+        , b.image_url
+        , b.height
+        , b.weight
+        FROM post a
+        JOIN user b ON a.user_id = b.id
+        WHERE a.id = #{postId}
+    </select>
+
+    <resultMap id="selectPostImagesResultMap" type="com.min.clother.post.query.dto.PostImageDTO">
+        <id property="id" column="id"/>
+        <result property="imageUrl" column="image_url"/>
+        <result property="order" column="order"/>
+    </resultMap>
+
+    <!-- 포스팅 이미지들 -->
+    <select id="selectPostImages" resultMap="selectPostImagesResultMap">
+        SELECT
+        id
+        , image_url
+        , `order`
+        FROM post_image
+        WHERE post_id = #{postId}
+        ORDER BY `order` ASC
+    </select>
+
+    <!-- 좋아요 여부 -->
+    <select id="selectIsLiked" resultType="boolean">
+        SELECT EXISTS (
+        SELECT
+        1
+        FROM likes
+        WHERE post_id = #{postId}
+        AND user_id = #{userId}
+        )
+    </select>
+
+    <!-- 룩태그 ids -->
+    <select id="selectLookTagIds" resultType="int">
+        SELECT
+        look_tag_id
+        FROM post_look_tag
+        WHERE post_id = #{postId}
+        ORDER BY look_tag_id
+    </select>
+
+    <resultMap id="selectProductTagsResultMap" type="com.min.clother.post.query.dto.ProductTagDTO">
+        <id property="id" column="id"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="productTagPositionX" column="position_x"/>
+        <result property="productTagPositionY" column="position_y"/>
+
+        <result property="productId" column="product_id"/>
+        <result property="productBrandName" column="brand_name"/>
+        <result property="productName" column="name"/>
+        <result property="productLink" column="link"/>
+        <result property="productPrice" column="price"/>
+        <result property="productImageUrl" column="image_url"/>
+    </resultMap>
+
+    <!-- 상품 태그들 -->
+    <select id="selectProductTags" resultMap="selectProductTagsResultMap">
+        SELECT
+        a.id
+        , a.category_id
+        , a.position_x
+        , a.position_y
+        , a.product_id
+        , b.brand_name
+        , b.name
+        , b.link
+        , b.price
+        , b.image_url
+        FROM tag a
+        JOIN product b ON a.product_id = b.id
+        WHERE a.post_id = #{postId}
+    </select>
+
+    <resultMap id="selectHairTagResultMap" type="com.min.clother.post.query.dto.HairTagDTO">
+        <id property="id" column="id"/>
+        <result property="categoryId" column="category_id"/>
+        <result property="hairTagPositionX" column="position_x"/>
+        <result property="hairTagPositionY" column="position_y"/>
+
+        <result property="hairShopLink" column="link"/>
+        <result property="hairShopName" column="name"/>
+    </resultMap>
+
+    <select id="selectHairTag" resultMap="selectHairTagResultMap">
+        SELECT
+        a.id
+        , a.category_id
+        , a.position_x
+        , a.position_y
+        , b.link
+        , b.name
+        FROM tag a
+        JOIN hair_tag b ON a.hair_tag_id = b.id
+        WHERE post_id = #{postId}
+    </select>
+</mapper>
